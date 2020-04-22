@@ -1,16 +1,28 @@
-#![crate_type = "staticlib"]
+// @file -- lib.rs
+// Implementation of the UefiVariablePolicyLib that is written
+// natively in Rust.
+//
+// Copyright (c) Microsoft Corporation.
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+//
 
 #![allow(unused)]
+#![allow(non_snake_case)]
 
 #![cfg_attr(not(test), no_std)]
 
-#![feature(alloc_error_handler)]
-
-// When building for production, will get this from the RustPkg.
-#[cfg(test)]
-extern crate r_efi;
-
 extern crate alloc;
+
+#[cfg(not(test))]
+extern crate uefi_rust_panic_lib;
+
+#[cfg(not(test))]
+extern crate uefi_rust_allocation_lib;
+
+#[cfg(not(test))]
+extern crate uefi_rust_print_lib_debug_lib;
+#[cfg(not(test))]
+use uefi_rust_print_lib_debug_lib::println;
 
 use alloc::slice;
 use alloc::string::String;
@@ -19,59 +31,6 @@ use core::mem;
 use r_efi::efi;
 
 // TODO: Check for truncation in every cast.
-
-
-//=====================================================================================================================
-//
-// NO_STD REQUIRED PREAMBLE STUFF
-// This section is defined entirely to satisfy Rust's no_std requirements.
-//
-use core::panic::PanicInfo;
-use core::alloc::{GlobalAlloc, Layout};
-use core::ffi::c_void;
-
-extern "C" {
-  fn AllocatePool (Size: usize) -> *mut c_void;
-  fn AllocateZeroPool (Size: usize) -> *mut c_void;
-  fn FreePool (Buffer: *mut c_void);
-}
-
-#[cfg(not(test))]
-#[panic_handler]
-#[allow(clippy::empty_loop)]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
-
-#[cfg(not(test))]
-#[alloc_error_handler]
-fn alloc_error_handler(layout: core::alloc::Layout) -> !
-{
-    loop {}
-}
-
-pub struct MyAllocator;
-#[cfg(not(test))]
-unsafe impl GlobalAlloc for MyAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-      let size = layout.size();
-      let align = layout.align();
-      if align > 8 {
-        return core::ptr::null_mut();
-      }
-
-      unsafe { AllocatePool (size) as *mut u8 }
-    }
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-      unsafe { FreePool (ptr as *mut c_void); }
-    }
-}
-
-#[cfg(not(test))]
-#[global_allocator]
-static ALLOCATOR: MyAllocator = MyAllocator;
-//=====================================================================================================================
-
 
 //=====================================================================================================================
 //
